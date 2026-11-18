@@ -1,0 +1,87 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use SimpleGitHooks\SimpleGitHooks;
+
+// Resolve the autoloader. When installed as a dependency, the package lives
+// under vendor/simple-git-hooks/simple-git-hooks, so the autoloader is two
+// levels up. When developing locally, it sits in the project root.
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+$autoloaderFound = false;
+foreach ($autoloadPaths as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        require $autoloadPath;
+        $autoloaderFound = true;
+        break;
+    }
+}
+
+if (!$autoloaderFound) {
+    fwrite(STDERR, '[ERROR] Could not find Composer autoloader. Run `composer install` first.' . PHP_EOL);
+    exit(1);
+}
+
+if (SimpleGitHooks::skipInstall()) {
+    exit(0);
+}
+
+$argv = $_SERVER['argv'] ?? [];
+$projectRoot = (string) getcwd();
+
+$command = $argv[1] ?? '';
+
+try {
+    if ($command === 'uninstall') {
+        fwrite(STDOUT, '[INFO] Removing git hooks from .git/hooks' . PHP_EOL);
+        SimpleGitHooks::removeHooks($projectRoot, $argv);
+        fwrite(STDOUT, '[INFO] Successfully removed all git hooks' . PHP_EOL);
+        exit(0);
+    }
+
+    if ($command === '--help' || $command === '-h') {
+        fwrite(
+            STDOUT,
+            <<<'HELP'
+simple-git-hooks - manage git hooks for PHP projects
+
+Usage:
+  simple-git-hooks [config-file]   Install hooks from config (default sources or a given file)
+  simple-git-hooks uninstall       Remove all installed hooks
+  simple-git-hooks --help          Show this help
+
+Configuration:
+  Put hooks under the "simple-git-hooks" key in composer.json (root or extra),
+  or in a .simple-git-hooks.json / simple-git-hooks.json file.
+
+  {
+      "simple-git-hooks": {
+          "pre-commit": "vendor/bin/php-cs-fixer fix --dry-run",
+          "pre-push": "composer test"
+      }
+  }
+
+Environment variables:
+  SKIP_INSTALL_SIMPLE_GIT_HOOKS=1   Skip installing hooks
+  SKIP_SIMPLE_GIT_HOOKS=1           Skip running a hook for one git operation
+  SIMPLE_GIT_HOOKS_RC               Path to a shell script sourced before each hook
+
+HELP
+        );
+        exit(0);
+    }
+
+    $result = SimpleGitHooks::setHooksFromConfig($projectRoot, $argv);
+    if (!$result['isHookChanged']) {
+        exit(0);
+    }
+    fwrite(STDOUT, '[INFO] Successfully set all git hooks' . PHP_EOL);
+} catch (\Throwable $e) {
+    fwrite(STDERR, '[ERROR] Was not able to set git hooks. Error: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}

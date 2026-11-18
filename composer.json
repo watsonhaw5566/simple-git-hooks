@@ -1,0 +1,43 @@
+{
+  "name": "watsonhaw/simple-git-hooks",
+  "description": "A simple, zero dependency tool for setting up git hooks for PHP projects",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "pre-commit",
+    "pre-push",
+    "git",
+    "hook",
+    "lint",
+    "linter"
+  ],
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.95",
+    "phpstan/phpstan": "^2.3",
+    "phpunit/phpunit": "^9.0 || ^10.0"
+  },
+  "bin": [
+    "bin/simple-git-hooks"
+  ],
+  "autoload": {
+    "psr-4": {
+      "SimpleGitHooks\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "SimpleGitHooks\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "post-install-cmd": "SimpleGitHooks\\SimpleGitHooks::postInstall",
+    "post-update-cmd": "SimpleGitHooks\\SimpleGitHooks::postInstall",
+    "test": "phpunit",
+    "analyze": "phpstan --no-progress --memory-limit=1G",
+    "fix-style": "php-cs-fixer fix --allow-risky=yes",
+    "check-style": "php-cs-fixer fix --dry-run --allow-risky=yes"
+  }
+}
